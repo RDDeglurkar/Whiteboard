@@ -1,7 +1,6 @@
 (() => {
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
-  const textInput = document.getElementById("text-input");
 
   const state = {
     tool: "pen",
@@ -11,7 +10,6 @@
     offsetX: 0,
     offsetY: 0,
     items: [],
-    redoStack: [],
     drawing: false,
     current: null,
     panning: false,
@@ -54,39 +52,33 @@
     );
   }
 
-  function drawItem(c, item) {
-    if (item.type === "stroke") {
-      c.strokeStyle = item.color;
-      c.lineWidth = item.size;
-      c.lineCap = "round";
-      c.lineJoin = "round";
-      c.globalCompositeOperation =
-        item.mode === "erase" ? "destination-out" : "source-over";
-      const pts = item.points;
-      if (pts.length < 2) {
-        c.beginPath();
-        c.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2);
-        c.fillStyle = item.color;
-        c.fill();
-        return;
-      }
+  function drawStroke(c, item) {
+    c.strokeStyle = item.color;
+    c.lineWidth = item.size;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    c.globalCompositeOperation =
+      item.mode === "erase" ? "destination-out" : "source-over";
+    const pts = item.points;
+    if (pts.length < 2) {
       c.beginPath();
-      c.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length - 1; i++) {
-        const midX = (pts[i].x + pts[i + 1].x) / 2;
-        const midY = (pts[i].y + pts[i + 1].y) / 2;
-        c.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-      }
-      const last = pts[pts.length - 1];
-      c.lineTo(last.x, last.y);
-      c.stroke();
-      c.globalCompositeOperation = "source-over";
-    } else if (item.type === "text") {
+      c.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2);
       c.fillStyle = item.color;
-      c.font = `${item.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-      c.textBaseline = "top";
-      c.fillText(item.text, item.x, item.y);
+      c.fill();
+      c.globalCompositeOperation = "source-over";
+      return;
     }
+    c.beginPath();
+    c.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const midX = (pts[i].x + pts[i + 1].x) / 2;
+      const midY = (pts[i].y + pts[i + 1].y) / 2;
+      c.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+    }
+    const last = pts[pts.length - 1];
+    c.lineTo(last.x, last.y);
+    c.stroke();
+    c.globalCompositeOperation = "source-over";
   }
 
   function render() {
@@ -94,63 +86,26 @@
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     applyView();
-    for (const item of state.items) drawItem(ctx, item);
-    if (state.current) drawItem(ctx, state.current);
-  }
-
-  function pushItem(item) {
-    state.items.push(item);
-    state.redoStack.length = 0;
-  }
-
-  function undo() {
-    if (state.items.length === 0) return;
-    state.redoStack.push(state.items.pop());
-    render();
-  }
-
-  function redo() {
-    if (state.redoStack.length === 0) return;
-    state.items.push(state.redoStack.pop());
-    render();
+    for (const item of state.items) drawStroke(ctx, item);
+    if (state.current) drawStroke(ctx, state.current);
   }
 
   function clearBoard() {
     if (state.items.length === 0) return;
     if (!confirm("Clear the whole board?")) return;
     state.items = [];
-    state.redoStack = [];
-    render();
-  }
-
-  function resetView() {
-    state.scale = 1;
-    state.offsetX = 0;
-    state.offsetY = 0;
     render();
   }
 
   function buildExportCanvas() {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const measureCanvas = document.createElement("canvas");
-    const mctx = measureCanvas.getContext("2d");
     for (const item of state.items) {
-      if (item.type === "stroke") {
-        const pad = item.size / 2;
-        for (const p of item.points) {
-          if (p.x - pad < minX) minX = p.x - pad;
-          if (p.y - pad < minY) minY = p.y - pad;
-          if (p.x + pad > maxX) maxX = p.x + pad;
-          if (p.y + pad > maxY) maxY = p.y + pad;
-        }
-      } else if (item.type === "text") {
-        mctx.font = `${item.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-        const w = mctx.measureText(item.text).width;
-        const h = item.size * 1.2;
-        if (item.x < minX) minX = item.x;
-        if (item.y < minY) minY = item.y;
-        if (item.x + w > maxX) maxX = item.x + w;
-        if (item.y + h > maxY) maxY = item.y + h;
+      const pad = item.size / 2;
+      for (const p of item.points) {
+        if (p.x - pad < minX) minX = p.x - pad;
+        if (p.y - pad < minY) minY = p.y - pad;
+        if (p.x + pad > maxX) maxX = p.x + pad;
+        if (p.y + pad > maxY) maxY = p.y + pad;
       }
     }
     const margin = 20;
@@ -164,7 +119,7 @@
     octx.fillStyle = "#ffffff";
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
-    for (const item of state.items) drawItem(octx, item);
+    for (const item of state.items) drawStroke(octx, item);
     return out;
   }
 
@@ -206,11 +161,8 @@
       downloadBlob(blob, filename);
     };
 
-    if (out.toBlob) {
-      out.toBlob(finish, "image/png");
-    } else {
-      finish(null);
-    }
+    if (out.toBlob) out.toBlob(finish, "image/png");
+    else finish(null);
   }
 
   function downloadBlob(blob, filename) {
@@ -231,10 +183,8 @@
     document.querySelectorAll(".tool").forEach((b) =>
       b.classList.toggle("active", b.dataset.tool === tool)
     );
-    canvas.classList.remove("tool-text", "tool-eraser");
-    if (tool === "text") canvas.classList.add("tool-text");
+    canvas.classList.remove("tool-eraser");
     if (tool === "eraser") canvas.classList.add("tool-eraser");
-    commitPendingText();
   }
 
   function setColor(color) {
@@ -250,7 +200,8 @@
     const pop = document.getElementById("color-popover");
     const trigger = document.getElementById("color-trigger");
     if (!pop || !trigger) return;
-    const open = typeof force === "boolean" ? force : pop.hasAttribute("hidden");
+    const isHidden = pop.hasAttribute("hidden");
+    const open = typeof force === "boolean" ? force : isHidden;
     if (open) {
       pop.removeAttribute("hidden");
       trigger.setAttribute("aria-expanded", "true");
@@ -258,44 +209,6 @@
       pop.setAttribute("hidden", "");
       trigger.setAttribute("aria-expanded", "false");
     }
-  }
-
-  function commitPendingText() {
-    if (textInput.style.display !== "block") return;
-    const value = textInput.value.trim();
-    if (value) {
-      const worldX = parseFloat(textInput.dataset.worldX);
-      const worldY = parseFloat(textInput.dataset.worldY);
-      const fontSize = parseFloat(textInput.dataset.fontSize);
-      pushItem({
-        type: "text",
-        text: value,
-        x: worldX,
-        y: worldY,
-        size: fontSize,
-        color: textInput.dataset.color,
-      });
-    }
-    textInput.style.display = "none";
-    textInput.value = "";
-    render();
-  }
-
-  function openTextInput(screenX, screenY) {
-    commitPendingText();
-    const world = screenToWorld(screenX, screenY);
-    const fontSize = Math.max(12, state.size * 5);
-    textInput.dataset.worldX = world.x;
-    textInput.dataset.worldY = world.y;
-    textInput.dataset.fontSize = fontSize;
-    textInput.dataset.color = state.color;
-    textInput.style.left = screenX + "px";
-    textInput.style.top = screenY + "px";
-    textInput.style.fontSize = fontSize * state.scale + "px";
-    textInput.style.color = state.color;
-    textInput.style.display = "block";
-    textInput.value = "";
-    setTimeout(() => textInput.focus(), 0);
   }
 
   function cancelCurrentStroke() {
@@ -367,16 +280,10 @@
     }
     if (e.button !== 0 && e.pointerType === "mouse") return;
 
-    if (state.tool === "text") {
-      openTextInput(e.clientX, e.clientY);
-      return;
-    }
-
     const world = screenToWorld(e.clientX, e.clientY);
     state.drawing = true;
     activePointerId = e.pointerId;
     state.current = {
-      type: "stroke",
       points: [world],
       color: state.color,
       size: state.tool === "eraser" ? state.size * 4 : state.size,
@@ -431,7 +338,7 @@
     if (state.drawing) {
       state.drawing = false;
       if (state.current && state.current.points.length > 0) {
-        pushItem(state.current);
+        state.items.push(state.current);
       }
       state.current = null;
       render();
@@ -459,32 +366,14 @@
   );
 
   window.addEventListener("keydown", (e) => {
-    if (document.activeElement === textInput) {
-      if (e.key === "Enter") { e.preventDefault(); commitPendingText(); }
-      else if (e.key === "Escape") {
-        textInput.style.display = "none";
-        textInput.value = "";
-      }
-      return;
-    }
     if (e.key === " " && !state.spaceDown) {
       state.spaceDown = true;
       canvas.classList.add("panning");
       e.preventDefault();
       return;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-      e.preventDefault();
-      if (e.shiftKey) redo(); else undo();
-      return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-      e.preventDefault(); redo(); return;
-    }
     if (e.key === "p" || e.key === "P") setTool("pen");
-    else if (e.key === "t" || e.key === "T") setTool("text");
     else if (e.key === "e" || e.key === "E") setTool("eraser");
-    else if (e.key === "0") resetView();
   });
 
   window.addEventListener("keyup", (e) => {
@@ -494,13 +383,12 @@
     }
   });
 
-  textInput.addEventListener("blur", () => commitPendingText());
-
   document.querySelectorAll(".tool").forEach((btn) =>
     btn.addEventListener("click", () => setTool(btn.dataset.tool))
   );
   document.querySelectorAll(".swatch").forEach((btn) =>
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       setColor(btn.dataset.color);
       toggleColorPopover(false);
     })
@@ -512,20 +400,19 @@
       toggleColorPopover();
     });
   }
-  document.addEventListener("click", (e) => {
+  document.addEventListener("pointerdown", (e) => {
     const pop = document.getElementById("color-popover");
+    const trigger = document.getElementById("color-trigger");
     if (!pop || pop.hasAttribute("hidden")) return;
-    if (!pop.contains(e.target) && e.target.id !== "color-trigger") {
-      toggleColorPopover(false);
-    }
+    if (pop.contains(e.target)) return;
+    if (trigger && trigger.contains(e.target)) return;
+    toggleColorPopover(false);
   });
+
   document.getElementById("size").addEventListener("input", (e) => {
     state.size = parseInt(e.target.value, 10);
   });
-  document.getElementById("undo").addEventListener("click", undo);
-  document.getElementById("redo").addEventListener("click", redo);
   document.getElementById("clear").addEventListener("click", clearBoard);
-  document.getElementById("reset-view").addEventListener("click", resetView);
   document.getElementById("export").addEventListener("click", exportPNG);
 
   window.addEventListener("resize", resize);
