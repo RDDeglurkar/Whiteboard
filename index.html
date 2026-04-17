@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Whiteboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="board"></canvas>
+
+    <div id="toolbar" role="toolbar" aria-label="Whiteboard tools">
+      <div class="group" role="group" aria-label="Tools">
+        <button class="tool active" data-tool="pen" title="Pen (P)">&#9998;</button>
+        <button class="tool" data-tool="text" title="Text (T)">T</button>
+        <button class="tool" data-tool="eraser" title="Eraser (E)">&#9003;</button>
+      </div>
+
+      <div class="group" role="group" aria-label="Colors">
+        <button class="swatch active" data-color="#111111" style="background:#111111" title="Black"></button>
+        <button class="swatch" data-color="#e11d48" style="background:#e11d48" title="Red"></button>
+        <button class="swatch" data-color="#2563eb" style="background:#2563eb" title="Blue"></button>
+        <button class="swatch" data-color="#16a34a" style="background:#16a34a" title="Green"></button>
+        <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" title="Orange"></button>
+      </div>
+
+      <div class="group" role="group" aria-label="Size">
+        <label>Size <input id="size" type="range" min="1" max="40" value="3" /></label>
+      </div>
+
+      <div class="group" role="group" aria-label="Actions">
+        <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+        <button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+        <button id="clear" title="Clear board">Clear</button>
+        <button id="reset-view" title="Reset zoom/pan (0)">Reset view</button>
+        <button id="export" title="Export as PNG">Export PNG</button>
+      </div>
+    </div>
+
+    <div id="hint">Scroll to zoom &middot; Space+drag (or middle-click) to pan</div>
+
+    <input id="text-input" type="text" placeholder="Type, Enter to place" />
+
+    <script src="app.js"></script>
+  </body>
+</html>
