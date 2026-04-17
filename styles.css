@@ -111,3 +111,29 @@ html, body {
   outline: none;
   z-index: 20;
 }
+
+@media (max-width: 600px) {
+  #toolbar {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .group {
+    padding-right: 6px;
+    gap: 4px;
+  }
+  #toolbar button {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 1;
+  }
+  .swatch {
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+  }
+  #toolbar label { font-size: 10px; gap: 4px; }
+  #size { width: 70px; }
+  #hint { font-size: 10px; }
+}

@@ -20,6 +20,10 @@
     dpr: window.devicePixelRatio || 1,
   };
 
+  const pointers = new Map();
+  let activePointerId = null;
+  let pinch = null;
+
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
 
@@ -36,13 +40,6 @@
     return {
       x: (x - state.offsetX) / state.scale,
       y: (y - state.offsetY) / state.scale,
-    };
-  }
-
-  function worldToScreen(x, y) {
-    return {
-      x: x * state.scale + state.offsetX,
-      y: y * state.scale + state.offsetY,
     };
   }
 
@@ -133,12 +130,10 @@
     render();
   }
 
-  function exportPNG() {
-    if (state.items.length === 0) {
-      alert("Nothing to export yet.");
-      return;
-    }
+  function buildExportCanvas() {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const measureCanvas = document.createElement("canvas");
+    const mctx = measureCanvas.getContext("2d");
     for (const item of state.items) {
       if (item.type === "stroke") {
         const pad = item.size / 2;
@@ -149,8 +144,6 @@
           if (p.y + pad > maxY) maxY = p.y + pad;
         }
       } else if (item.type === "text") {
-        const measureCanvas = document.createElement("canvas");
-        const mctx = measureCanvas.getContext("2d");
         mctx.font = `${item.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         const w = mctx.measureText(item.text).width;
         const h = item.size * 1.2;
@@ -164,7 +157,6 @@
     minX -= margin; minY -= margin; maxX += margin; maxY += margin;
     const w = Math.max(1, Math.ceil(maxX - minX));
     const h = Math.max(1, Math.ceil(maxY - minY));
-
     const out = document.createElement("canvas");
     out.width = w;
     out.height = h;
@@ -173,18 +165,65 @@
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
     for (const item of state.items) drawItem(octx, item);
+    return out;
+  }
 
-    out.toBlob((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
-      a.download = `whiteboard-${ts}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }, "image/png");
+  function exportPNG() {
+    if (state.items.length === 0) {
+      alert("Nothing to export yet.");
+      return;
+    }
+    const out = buildExportCanvas();
+    const filename = `whiteboard-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+
+    const finish = (blob) => {
+      if (!blob) {
+        const dataUrl = out.toDataURL("image/png");
+        const w = window.open();
+        if (w) {
+          w.document.write(
+            `<title>${filename}</title><body style="margin:0;background:#222;display:flex;align-items:center;justify-content:center;min-height:100vh;"><img src="${dataUrl}" style="max-width:100%;height:auto;"/></body>`
+          );
+        } else {
+          location.href = dataUrl;
+        }
+        return;
+      }
+
+      if (navigator.canShare && typeof File !== "undefined") {
+        try {
+          const file = new File([blob], filename, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            navigator
+              .share({ files: [file], title: "Whiteboard" })
+              .catch((err) => {
+                if (err && err.name !== "AbortError") downloadBlob(blob, filename);
+              });
+            return;
+          }
+        } catch {}
+      }
+      downloadBlob(blob, filename);
+    };
+
+    if (out.toBlob) {
+      out.toBlob(finish, "image/png");
+    } else {
+      finish(null);
+    }
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
   function setTool(tool) {
@@ -243,18 +282,74 @@
     setTimeout(() => textInput.focus(), 0);
   }
 
+  function cancelCurrentStroke() {
+    if (state.drawing) {
+      state.drawing = false;
+      state.current = null;
+      activePointerId = null;
+      render();
+    }
+    if (state.panning) {
+      state.panning = false;
+      canvas.classList.remove("panning-active");
+    }
+  }
+
+  function startPinch() {
+    const pts = [...pointers.values()];
+    const dx = pts[1].x - pts[0].x;
+    const dy = pts[1].y - pts[0].y;
+    pinch = {
+      startDist: Math.hypot(dx, dy) || 1,
+      startCenterX: (pts[0].x + pts[1].x) / 2,
+      startCenterY: (pts[0].y + pts[1].y) / 2,
+      startScale: state.scale,
+      startOffsetX: state.offsetX,
+      startOffsetY: state.offsetY,
+    };
+  }
+
+  function updatePinch() {
+    if (!pinch || pointers.size < 2) return;
+    const pts = [...pointers.values()];
+    const dx = pts[1].x - pts[0].x;
+    const dy = pts[1].y - pts[0].y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const cx = (pts[0].x + pts[1].x) / 2;
+    const cy = (pts[0].y + pts[1].y) / 2;
+
+    const factor = dist / pinch.startDist;
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pinch.startScale * factor));
+    const k = newScale / pinch.startScale;
+
+    state.scale = newScale;
+    state.offsetX = cx - k * (pinch.startCenterX - pinch.startOffsetX);
+    state.offsetY = cy - k * (pinch.startCenterY - pinch.startOffsetY);
+    render();
+  }
+
   canvas.addEventListener("pointerdown", (e) => {
     if (e.target !== canvas) return;
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch {}
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size >= 2) {
+      cancelCurrentStroke();
+      if (pointers.size === 2) startPinch();
+      e.preventDefault();
+      return;
+    }
+
     const isPan = state.spaceDown || e.button === 1 || e.button === 2;
     if (isPan) {
       state.panning = true;
       state.panStart = { x: e.clientX, y: e.clientY, ox: state.offsetX, oy: state.offsetY };
       canvas.classList.add("panning-active");
+      activePointerId = e.pointerId;
       e.preventDefault();
       return;
     }
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.pointerType === "mouse") return;
 
     if (state.tool === "text") {
       openTextInput(e.clientX, e.clientY);
@@ -263,6 +358,7 @@
 
     const world = screenToWorld(e.clientX, e.clientY);
     state.drawing = true;
+    activePointerId = e.pointerId;
     state.current = {
       type: "stroke",
       points: [world],
@@ -274,6 +370,15 @@
   });
 
   canvas.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pinch) {
+      updatePinch();
+      return;
+    }
+    if (e.pointerId !== activePointerId) return;
+
     if (state.panning) {
       state.offsetX = state.panStart.ox + (e.clientX - state.panStart.x);
       state.offsetY = state.panStart.oy + (e.clientY - state.panStart.y);
@@ -293,6 +398,16 @@
   });
 
   function endPointer(e) {
+    pointers.delete(e.pointerId);
+    try { canvas.releasePointerCapture(e.pointerId); } catch {}
+
+    if (pinch && pointers.size < 2) {
+      pinch = null;
+      activePointerId = null;
+      return;
+    }
+    if (e.pointerId !== activePointerId) return;
+
     if (state.panning) {
       state.panning = false;
       canvas.classList.remove("panning-active");
@@ -305,11 +420,10 @@
       state.current = null;
       render();
     }
-    try { canvas.releasePointerCapture(e.pointerId); } catch {}
+    activePointerId = null;
   }
   canvas.addEventListener("pointerup", endPointer);
   canvas.addEventListener("pointercancel", endPointer);
-  canvas.addEventListener("pointerleave", endPointer);
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
   canvas.addEventListener(
