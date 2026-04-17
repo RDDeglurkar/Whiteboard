@@ -90,10 +90,9 @@
     if (state.current) drawStroke(ctx, state.current);
   }
 
-  function clearBoard() {
+  function undo() {
     if (state.items.length === 0) return;
-    if (!confirm("Clear the whole board?")) return;
-    state.items = [];
+    state.items.pop();
     render();
   }
 
@@ -372,6 +371,11 @@
       e.preventDefault();
       return;
     }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      undo();
+      return;
+    }
     if (e.key === "p" || e.key === "P") setTool("pen");
     else if (e.key === "e" || e.key === "E") setTool("eraser");
   });
@@ -412,7 +416,7 @@
   document.getElementById("size").addEventListener("input", (e) => {
     state.size = parseInt(e.target.value, 10);
   });
-  document.getElementById("clear").addEventListener("click", clearBoard);
+  document.getElementById("undo").addEventListener("click", undo);
   document.getElementById("export").addEventListener("click", exportPNG);
 
   window.addEventListener("resize", resize);

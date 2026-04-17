@@ -44,10 +44,13 @@ html, body {
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   z-index: 10;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   max-width: calc(100vw - 16px);
+  overflow-x: auto;
   font-size: 11px;
+  white-space: nowrap;
 }
+#toolbar::-webkit-scrollbar { height: 0; display: none; }
 
 .group {
   display: flex;
@@ -56,6 +59,7 @@ html, body {
   padding-right: 6px;
   border-right: 1px solid #e5e7eb;
   position: relative;
+  flex-shrink: 0;
 }
 .group:last-child { border-right: none; padding-right: 0; }
 
