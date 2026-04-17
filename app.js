@@ -81,11 +81,36 @@
     c.globalCompositeOperation = "source-over";
   }
 
+  function drawGrid() {
+    const base = 40;
+    let gridSize = base;
+    while (gridSize * state.scale < 20) gridSize *= 2;
+    while (gridSize * state.scale > 100) gridSize /= 2;
+
+    const topLeft = screenToWorld(0, 0);
+    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
+    const startX = Math.floor(topLeft.x / gridSize) * gridSize;
+    const endX = Math.ceil(bottomRight.x / gridSize) * gridSize;
+    const startY = Math.floor(topLeft.y / gridSize) * gridSize;
+    const endY = Math.ceil(bottomRight.y / gridSize) * gridSize;
+
+    const dotRadius = 1.2 / state.scale;
+    ctx.fillStyle = "#cbd5e1";
+    for (let x = startX; x <= endX; x += gridSize) {
+      for (let y = startY; y <= endY; y += gridSize) {
+        ctx.beginPath();
+        ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
   function render() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     applyView();
+    drawGrid();
     for (const item of state.items) drawStroke(ctx, item);
     if (state.current) drawStroke(ctx, state.current);
   }
@@ -195,6 +220,37 @@
     if (indicator) indicator.style.background = color;
   }
 
+  function positionPopover() {
+    const pop = document.getElementById("color-popover");
+    const trigger = document.getElementById("color-trigger");
+    if (!pop || !trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const phoneLandscape = window.matchMedia(
+      "(orientation: landscape) and (max-height: 600px)"
+    ).matches;
+    pop.style.visibility = "hidden";
+    pop.style.top = "0px";
+    pop.style.left = "0px";
+    const popRect = pop.getBoundingClientRect();
+    let top, left;
+    if (phoneLandscape) {
+      top = rect.top;
+      left = rect.right + 6;
+    } else {
+      top = rect.bottom + 6;
+      left = rect.left;
+    }
+    const maxLeft = window.innerWidth - popRect.width - 6;
+    const maxTop = window.innerHeight - popRect.height - 6;
+    if (left > maxLeft) left = maxLeft;
+    if (top > maxTop) top = maxTop;
+    if (left < 6) left = 6;
+    if (top < 6) top = 6;
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+    pop.style.visibility = "";
+  }
+
   function toggleColorPopover(force) {
     const pop = document.getElementById("color-popover");
     const trigger = document.getElementById("color-trigger");
@@ -204,6 +260,7 @@
     if (open) {
       pop.removeAttribute("hidden");
       trigger.setAttribute("aria-expanded", "true");
+      positionPopover();
     } else {
       pop.setAttribute("hidden", "");
       trigger.setAttribute("aria-expanded", "false");
@@ -419,6 +476,10 @@
   document.getElementById("undo").addEventListener("click", undo);
   document.getElementById("export").addEventListener("click", exportPNG);
 
-  window.addEventListener("resize", resize);
+  window.addEventListener("resize", () => {
+    resize();
+    const pop = document.getElementById("color-popover");
+    if (pop && !pop.hasAttribute("hidden")) positionPopover();
+  });
   resize();
 })();
