@@ -16,12 +16,17 @@
         <button class="tool" data-tool="eraser" title="Eraser (E)">&#9003;</button>
       </div>
 
-      <div class="group" role="group" aria-label="Colors">
-        <button class="swatch active" data-color="#111111" style="background:#111111" title="Black"></button>
-        <button class="swatch" data-color="#e11d48" style="background:#e11d48" title="Red"></button>
-        <button class="swatch" data-color="#2563eb" style="background:#2563eb" title="Blue"></button>
-        <button class="swatch" data-color="#16a34a" style="background:#16a34a" title="Green"></button>
-        <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" title="Orange"></button>
+      <div class="group group-color" role="group" aria-label="Color">
+        <button id="color-trigger" class="color-trigger" title="Color" aria-haspopup="true" aria-expanded="false">
+          <span id="color-indicator" style="background:#111111"></span>
+        </button>
+        <div id="color-popover" class="popover" hidden>
+          <button class="swatch active" data-color="#111111" style="background:#111111" title="Black"></button>
+          <button class="swatch" data-color="#e11d48" style="background:#e11d48" title="Red"></button>
+          <button class="swatch" data-color="#2563eb" style="background:#2563eb" title="Blue"></button>
+          <button class="swatch" data-color="#16a34a" style="background:#16a34a" title="Green"></button>
+          <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" title="Orange"></button>
+        </div>
       </div>
 
       <div class="group" role="group" aria-label="Size">
@@ -32,8 +37,8 @@
         <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
         <button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
         <button id="clear" title="Clear board">Clear</button>
-        <button id="reset-view" title="Reset zoom/pan (0)">Reset view</button>
-        <button id="export" title="Export as PNG">Export PNG</button>
+        <button id="reset-view" title="Reset zoom/pan (0)">Reset</button>
+        <button id="export" title="Export as PNG">PNG</button>
       </div>
     </div>
 

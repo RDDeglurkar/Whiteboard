@@ -242,6 +242,22 @@
     document.querySelectorAll(".swatch").forEach((b) =>
       b.classList.toggle("active", b.dataset.color === color)
     );
+    const indicator = document.getElementById("color-indicator");
+    if (indicator) indicator.style.background = color;
+  }
+
+  function toggleColorPopover(force) {
+    const pop = document.getElementById("color-popover");
+    const trigger = document.getElementById("color-trigger");
+    if (!pop || !trigger) return;
+    const open = typeof force === "boolean" ? force : pop.hasAttribute("hidden");
+    if (open) {
+      pop.removeAttribute("hidden");
+      trigger.setAttribute("aria-expanded", "true");
+    } else {
+      pop.setAttribute("hidden", "");
+      trigger.setAttribute("aria-expanded", "false");
+    }
   }
 
   function commitPendingText() {
@@ -484,8 +500,25 @@
     btn.addEventListener("click", () => setTool(btn.dataset.tool))
   );
   document.querySelectorAll(".swatch").forEach((btn) =>
-    btn.addEventListener("click", () => setColor(btn.dataset.color))
+    btn.addEventListener("click", () => {
+      setColor(btn.dataset.color);
+      toggleColorPopover(false);
+    })
   );
+  const colorTrigger = document.getElementById("color-trigger");
+  if (colorTrigger) {
+    colorTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleColorPopover();
+    });
+  }
+  document.addEventListener("click", (e) => {
+    const pop = document.getElementById("color-popover");
+    if (!pop || pop.hasAttribute("hidden")) return;
+    if (!pop.contains(e.target) && e.target.id !== "color-trigger") {
+      toggleColorPopover(false);
+    }
+  });
   document.getElementById("size").addEventListener("input", (e) => {
     state.size = parseInt(e.target.value, 10);
   });
