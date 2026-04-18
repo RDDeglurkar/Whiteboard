@@ -24,6 +24,10 @@
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
 
+  const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+  const isDark = () => darkMQ.matches;
+  const displayColor = (c) => (isDark() && c === "#111111" ? "#ffffff" : c);
+
   function resize() {
     state.dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(window.innerWidth * state.dpr);
@@ -51,8 +55,10 @@
     );
   }
 
-  function drawStroke(c, item) {
-    c.strokeStyle = item.color;
+  function drawStroke(c, item, opts) {
+    const useDisplay = !opts || opts.display !== false;
+    const color = useDisplay ? displayColor(item.color) : item.color;
+    c.strokeStyle = color;
     c.lineWidth = item.size;
     c.lineCap = "round";
     c.lineJoin = "round";
@@ -60,7 +66,7 @@
     if (pts.length < 2) {
       c.beginPath();
       c.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2);
-      c.fillStyle = item.color;
+      c.fillStyle = color;
       c.fill();
       return;
     }
@@ -87,7 +93,7 @@
     const f = Math.max(0, Math.min(1, (majorSpacing - minPx) / (maxPx - minPx)));
 
     const dotRadius = 1.2 / state.scale;
-    const rgb = "71, 85, 105";
+    const rgb = isDark() ? "148, 163, 184" : "71, 85, 105";
 
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
@@ -125,7 +131,7 @@
 
   function render() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = isDark() ? "#0f172a" : "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     applyView();
     drawGrid();
@@ -169,7 +175,7 @@
     octx.fillStyle = "#ffffff";
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
-    for (const item of state.items) drawStroke(octx, item);
+    for (const item of state.items) drawStroke(octx, item, { display: false });
     return out;
   }
 
@@ -234,7 +240,7 @@
       b.classList.toggle("active", b.dataset.color === color)
     );
     const indicator = document.getElementById("color-indicator");
-    if (indicator) indicator.style.background = color;
+    if (indicator) indicator.style.background = displayColor(color);
   }
 
   function positionPopover() {
@@ -492,5 +498,14 @@
     const pop = document.getElementById("color-popover");
     if (pop && !pop.hasAttribute("hidden")) positionPopover();
   });
+
+  const onSchemeChange = () => {
+    setColor(state.color);
+    render();
+  };
+  if (darkMQ.addEventListener) darkMQ.addEventListener("change", onSchemeChange);
+  else if (darkMQ.addListener) darkMQ.addListener(onSchemeChange);
+
+  setColor(state.color);
   resize();
 })();
