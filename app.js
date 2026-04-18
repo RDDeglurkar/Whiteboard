@@ -78,23 +78,46 @@
 
   function drawGrid() {
     const base = 40;
+    const minPx = 30;
+    const maxPx = 60;
     let gridSize = base;
-    while (gridSize * state.scale < 20) gridSize *= 2;
-    while (gridSize * state.scale > 100) gridSize /= 2;
+    while (gridSize * state.scale < minPx) gridSize *= 2;
+    while (gridSize * state.scale >= maxPx) gridSize /= 2;
+    const majorSpacing = gridSize * state.scale;
+    const f = Math.max(0, Math.min(1, (majorSpacing - minPx) / (maxPx - minPx)));
+
+    const dotRadius = 1.2 / state.scale;
+    const rgb = "148, 163, 184";
 
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
-    const startX = Math.floor(topLeft.x / gridSize) * gridSize;
-    const endX = Math.ceil(bottomRight.x / gridSize) * gridSize;
-    const startY = Math.floor(topLeft.y / gridSize) * gridSize;
-    const endY = Math.ceil(bottomRight.y / gridSize) * gridSize;
 
-    const dotRadius = 1.2 / state.scale;
-    ctx.fillStyle = "#cbd5e1";
-    for (let x = startX; x <= endX; x += gridSize) {
-      for (let y = startY; y <= endY; y += gridSize) {
+    if (f > 0) {
+      const minorSize = gridSize / 2;
+      const ixStart = Math.floor(topLeft.x / minorSize);
+      const ixEnd = Math.ceil(bottomRight.x / minorSize);
+      const iyStart = Math.floor(topLeft.y / minorSize);
+      const iyEnd = Math.ceil(bottomRight.y / minorSize);
+      ctx.fillStyle = `rgba(${rgb}, ${f.toFixed(3)})`;
+      for (let ix = ixStart; ix <= ixEnd; ix++) {
+        for (let iy = iyStart; iy <= iyEnd; iy++) {
+          if (ix % 2 === 0 && iy % 2 === 0) continue;
+          ctx.beginPath();
+          ctx.arc(ix * minorSize, iy * minorSize, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    const ixStart = Math.floor(topLeft.x / gridSize);
+    const ixEnd = Math.ceil(bottomRight.x / gridSize);
+    const iyStart = Math.floor(topLeft.y / gridSize);
+    const iyEnd = Math.ceil(bottomRight.y / gridSize);
+    ctx.fillStyle = `rgb(${rgb})`;
+    for (let ix = ixStart; ix <= ixEnd; ix++) {
+      for (let iy = iyStart; iy <= iyEnd; iy++) {
         ctx.beginPath();
-        ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+        ctx.arc(ix * gridSize, iy * gridSize, dotRadius, 0, Math.PI * 2);
         ctx.fill();
       }
     }
