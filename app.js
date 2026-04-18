@@ -24,9 +24,30 @@
   const MIN_SCALE = 0.1;
   const MAX_SCALE = 10;
 
+  const THEME_KEY = "whiteboard-theme";
   const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
-  const isDark = () => darkMQ.matches;
+  const storedTheme = (() => {
+    try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+  })();
+  let theme = storedTheme === "dark" || storedTheme === "light"
+    ? storedTheme
+    : (darkMQ.matches ? "dark" : "light");
+  const isDark = () => theme === "dark";
   const displayColor = (c) => (isDark() && c === "#111111" ? "#ffffff" : c);
+
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", theme);
+  }
+
+  function setTheme(t) {
+    theme = t;
+    try { localStorage.setItem(THEME_KEY, t); } catch {}
+    applyTheme();
+    setColor(state.color);
+    render();
+  }
+
+  applyTheme();
 
   function resize() {
     state.dpr = window.devicePixelRatio || 1;
@@ -499,12 +520,16 @@
     if (pop && !pop.hasAttribute("hidden")) positionPopover();
   });
 
-  const onSchemeChange = () => {
-    setColor(state.color);
-    render();
+  const onSchemeChange = (e) => {
+    if (storedTheme) return;
+    setTheme(e.matches ? "dark" : "light");
   };
   if (darkMQ.addEventListener) darkMQ.addEventListener("change", onSchemeChange);
   else if (darkMQ.addListener) darkMQ.addListener(onSchemeChange);
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    setTheme(isDark() ? "light" : "dark");
+  });
 
   setColor(state.color);
   resize();
