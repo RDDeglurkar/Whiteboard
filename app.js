@@ -87,7 +87,7 @@
     const f = Math.max(0, Math.min(1, (majorSpacing - minPx) / (maxPx - minPx)));
 
     const dotRadius = 1.2 / state.scale;
-    const rgb = "148, 163, 184";
+    const rgb = "71, 85, 105";
 
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
