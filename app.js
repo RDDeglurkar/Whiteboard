@@ -131,10 +131,18 @@
     minX -= margin; minY -= margin; maxX += margin; maxY += margin;
     const w = Math.max(1, Math.ceil(maxX - minX));
     const h = Math.max(1, Math.ceil(maxY - minY));
+
+    const targetMin = 2000;
+    const fit = Math.max(targetMin / w, targetMin / h, 2);
+    const scale = Math.min(fit, 6);
+
     const out = document.createElement("canvas");
-    out.width = w;
-    out.height = h;
+    out.width = Math.ceil(w * scale);
+    out.height = Math.ceil(h * scale);
     const octx = out.getContext("2d");
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = "high";
+    octx.scale(scale, scale);
     octx.fillStyle = "#ffffff";
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
