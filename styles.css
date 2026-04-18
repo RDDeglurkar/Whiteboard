@@ -71,7 +71,11 @@ html, body {
   line-height: 1;
   cursor: pointer;
   color: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+#toolbar button svg { display: block; }
 #toolbar button:hover { background: #f3f4f6; }
 #toolbar button.active { background: #111; color: #fff; border-color: #111; }
 
