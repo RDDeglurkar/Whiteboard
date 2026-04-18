@@ -181,9 +181,9 @@ html, body {
   #hint { display: none; }
 }
 
-.icon-sun { display: none; }
-html[data-theme="dark"] .icon-sun { display: block; }
-html[data-theme="dark"] .icon-moon { display: none; }
+#theme-toggle .icon-sun { display: none; }
+html[data-theme="dark"] #theme-toggle .icon-sun { display: block; }
+html[data-theme="dark"] #theme-toggle .icon-moon { display: none; }
 
 html[data-theme="dark"], html[data-theme="dark"] body { background: #0f172a; color: #e5e7eb; }
 html[data-theme="dark"] #board { background: #0f172a; }
