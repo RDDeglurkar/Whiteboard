@@ -28,8 +28,6 @@ html, body {
 
 #board.panning { cursor: grab; }
 #board.panning-active { cursor: grabbing; }
-#board.tool-text { cursor: text; }
-#board.tool-eraser { cursor: cell; }
 
 #toolbar {
   position: fixed;

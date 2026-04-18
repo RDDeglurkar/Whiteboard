@@ -3,7 +3,6 @@
   const ctx = canvas.getContext("2d");
 
   const state = {
-    tool: "pen",
     color: "#111111",
     size: 3,
     scale: 1,
@@ -57,15 +56,12 @@
     c.lineWidth = item.size;
     c.lineCap = "round";
     c.lineJoin = "round";
-    c.globalCompositeOperation =
-      item.mode === "erase" ? "destination-out" : "source-over";
     const pts = item.points;
     if (pts.length < 2) {
       c.beginPath();
       c.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2);
       c.fillStyle = item.color;
       c.fill();
-      c.globalCompositeOperation = "source-over";
       return;
     }
     c.beginPath();
@@ -78,7 +74,6 @@
     const last = pts[pts.length - 1];
     c.lineTo(last.x, last.y);
     c.stroke();
-    c.globalCompositeOperation = "source-over";
   }
 
   function drawGrid() {
@@ -200,15 +195,6 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
-
-  function setTool(tool) {
-    state.tool = tool;
-    document.querySelectorAll(".tool").forEach((b) =>
-      b.classList.toggle("active", b.dataset.tool === tool)
-    );
-    canvas.classList.remove("tool-eraser");
-    if (tool === "eraser") canvas.classList.add("tool-eraser");
   }
 
   function setColor(color) {
@@ -342,8 +328,7 @@
     state.current = {
       points: [world],
       color: state.color,
-      size: state.tool === "eraser" ? state.size * 4 : state.size,
-      mode: state.tool === "eraser" ? "erase" : "draw",
+      size: state.size,
     };
     render();
   });
@@ -433,8 +418,6 @@
       undo();
       return;
     }
-    if (e.key === "p" || e.key === "P") setTool("pen");
-    else if (e.key === "e" || e.key === "E") setTool("eraser");
   });
 
   window.addEventListener("keyup", (e) => {
@@ -444,9 +427,6 @@
     }
   });
 
-  document.querySelectorAll(".tool").forEach((btn) =>
-    btn.addEventListener("click", () => setTool(btn.dataset.tool))
-  );
   document.querySelectorAll(".swatch").forEach((btn) =>
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
