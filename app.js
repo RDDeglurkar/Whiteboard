@@ -183,12 +183,14 @@
     const h = Math.max(1, Math.ceil(maxY - minY));
 
     const targetMin = 2000;
-    const fit = Math.max(targetMin / w, targetMin / h, 2);
-    const scale = Math.min(fit, 6);
+    const MAX_DIM = 4000;
+    let scale = Math.max(targetMin / w, targetMin / h, 2);
+    scale = Math.min(scale, 6, MAX_DIM / w, MAX_DIM / h);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
 
     const out = document.createElement("canvas");
-    out.width = Math.ceil(w * scale);
-    out.height = Math.ceil(h * scale);
+    out.width = Math.max(1, Math.floor(w * scale));
+    out.height = Math.max(1, Math.floor(h * scale));
     const octx = out.getContext("2d");
     octx.imageSmoothingEnabled = true;
     octx.imageSmoothingQuality = "high";
@@ -205,7 +207,13 @@
       alert("Nothing to export yet.");
       return;
     }
-    const out = buildExportCanvas();
+    let out;
+    try {
+      out = buildExportCanvas();
+    } catch (err) {
+      alert("Export failed: drawing is too large for this device.");
+      return;
+    }
     const filename = `whiteboard-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
 
     const finish = (blob) => {
@@ -529,6 +537,13 @@
 
   document.getElementById("theme-toggle").addEventListener("click", () => {
     setTheme(isDark() ? "light" : "dark");
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (state.items.length === 0) return;
+    e.preventDefault();
+    e.returnValue = "";
+    return "";
   });
 
   setColor(state.color);

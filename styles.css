@@ -24,6 +24,10 @@ html, body {
   touch-action: none;
   background: #ffffff;
   cursor: crosshair;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 #board.panning { cursor: grab; }
@@ -45,7 +49,10 @@ html, body {
   flex-wrap: nowrap;
   font-size: 11px;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+#toolbar button, #toolbar label, #toolbar input { touch-action: manipulation; }
 
 .group {
   display: flex;
