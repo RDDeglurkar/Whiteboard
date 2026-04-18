@@ -177,7 +177,7 @@
         if (p.y + pad > maxY) maxY = p.y + pad;
       }
     }
-    const margin = 20;
+    const margin = 10;
     minX -= margin; minY -= margin; maxX += margin; maxY += margin;
     const w = Math.max(1, Math.ceil(maxX - minX));
     const h = Math.max(1, Math.ceil(maxY - minY));
@@ -539,11 +539,12 @@
     setTheme(isDark() ? "light" : "dark");
   });
 
+  const unloadMessage = "You have unsaved work on the board. Leave anyway?";
   window.addEventListener("beforeunload", (e) => {
-    if (state.items.length === 0) return;
+    if (state.items.length === 0) return undefined;
     e.preventDefault();
-    e.returnValue = "";
-    return "";
+    e.returnValue = unloadMessage;
+    return unloadMessage;
   });
 
   setColor(state.color);
