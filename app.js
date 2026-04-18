@@ -114,7 +114,7 @@
     const f = Math.max(0, Math.min(1, (majorSpacing - minPx) / (maxPx - minPx)));
 
     const dotRadius = 1.2 / state.scale;
-    const rgb = isDark() ? "148, 163, 184" : "71, 85, 105";
+    const rgb = "100, 116, 139";
 
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
@@ -193,10 +193,10 @@
     octx.imageSmoothingEnabled = true;
     octx.imageSmoothingQuality = "high";
     octx.scale(scale, scale);
-    octx.fillStyle = "#ffffff";
+    octx.fillStyle = isDark() ? "#0f172a" : "#ffffff";
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
-    for (const item of state.items) drawStroke(octx, item, { display: false });
+    for (const item of state.items) drawStroke(octx, item);
     return out;
   }
 
