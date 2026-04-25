@@ -103,6 +103,16 @@
     c.stroke();
   }
 
+  function drawImage(c, item) {
+    if (!item.img || !item.img.complete || item.img.naturalWidth === 0) return;
+    c.drawImage(item.img, item.x, item.y, item.w, item.h);
+  }
+
+  function drawItem(c, item, opts) {
+    if (item.type === "image") drawImage(c, item);
+    else drawStroke(c, item, opts);
+  }
+
   function drawGrid() {
     const base = 40;
     const minPx = 30;
@@ -156,7 +166,7 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     applyView();
     drawGrid();
-    for (const item of state.items) drawStroke(ctx, item);
+    for (const item of state.items) drawItem(ctx, item);
     if (state.current) drawStroke(ctx, state.current);
   }
 
@@ -169,6 +179,13 @@
   function buildExportCanvas() {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const item of state.items) {
+      if (item.type === "image") {
+        if (item.x < minX) minX = item.x;
+        if (item.y < minY) minY = item.y;
+        if (item.x + item.w > maxX) maxX = item.x + item.w;
+        if (item.y + item.h > maxY) maxY = item.y + item.h;
+        continue;
+      }
       const pad = item.size / 2;
       for (const p of item.points) {
         if (p.x - pad < minX) minX = p.x - pad;
@@ -198,7 +215,7 @@
     octx.fillStyle = isDark() ? "#0f172a" : "#ffffff";
     octx.fillRect(0, 0, w, h);
     octx.translate(-minX, -minY);
-    for (const item of state.items) drawStroke(octx, item);
+    for (const item of state.items) drawItem(octx, item);
     return out;
   }
 
@@ -471,6 +488,65 @@
     },
     { passive: false }
   );
+
+  function addImageFromBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const naturalW = img.naturalWidth;
+      const naturalH = img.naturalHeight;
+      if (!naturalW || !naturalH) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const maxW = (window.innerWidth * 0.8) / state.scale;
+      const maxH = (window.innerHeight * 0.8) / state.scale;
+      const fit = Math.min(1, maxW / naturalW, maxH / naturalH);
+      const w = naturalW * fit;
+      const h = naturalH * fit;
+      const center = screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
+      state.items.push({
+        type: "image",
+        img,
+        x: center.x - w / 2,
+        y: center.y - h / 2,
+        w,
+        h,
+      });
+      render();
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }
+
+  window.addEventListener("paste", (e) => {
+    const target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+      return;
+    }
+    const cd = e.clipboardData;
+    if (!cd) return;
+    const items = cd.items ? [...cd.items] : [];
+    for (const it of items) {
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const blob = it.getAsFile();
+        if (blob) {
+          e.preventDefault();
+          addImageFromBlob(blob);
+          return;
+        }
+      }
+    }
+    if (cd.files && cd.files.length) {
+      for (const f of cd.files) {
+        if (f.type.startsWith("image/")) {
+          e.preventDefault();
+          addImageFromBlob(f);
+          return;
+        }
+      }
+    }
+  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key === " " && !state.spaceDown) {
